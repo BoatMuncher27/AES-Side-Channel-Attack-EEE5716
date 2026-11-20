@@ -37,5 +37,6 @@ if __name__ == "__main__":
     rng = random.Random(args.seed)
     chosen = rng.sample(candidates, args.n)
     print(f"\nChosen keys (seed={args.seed}):")
+    
     for k in chosen:
         print(f"  {k}  ->  {folders[k]}")

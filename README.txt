@@ -2,12 +2,23 @@ Project 5: Side-channel attacks on AES (DPA contest v2 traces)
 Read Section 5 of Project_Descriptions_F26.pdf first.
 
 Contents
-  dpav2_download.py   downloads the DPA contest v2 public base (4 parts, about 3.7 GB) from the
-                      Telecom Paris mirror; run it again to resume an interrupted download
-  dpav2_convert.py    streams the archive into one NumPy folder per key (no extraction needed)
-  aes_tools.py        S-box, inverse S-box, Hamming weights, key schedule and its inversion,
-                      reference AES encryption (no attack code)
-  check_data.py       checks one converted key folder and plots the mean trace
+  dpav2_download.py       downloads the DPA contest v2 public base (4 parts, about 3.7 GB) from the
+                          Telecom Paris mirror; run it again to resume an interrupted download
+  dpav2_convert.py        streams the archive into one NumPy folder per key (no extraction needed)
+  aes_tools.py            S-box, inverse S-box, Hamming weights, key schedule and its inversion,
+                          reference AES encryption (no attack code)
+  check_data.py           checks one converted key folder and plots the mean trace
+
+New Contents
+  utils.py                load a converted key folder, ground-truth round-10 key (eval only)
+  leakage.py              the two leakage models (`hw`, `hd`) and the ShiftRows byte mapping
+  cpa_attack.py           the CPA attack itself — recovers all 16 round-10 key bytes
+  evaluate.py             success rate / guessing entropy vs. number of traces (≥10 random subsets per N)
+  select_random_keys.py   randomly pick the extra keys required by part 3 (grad: 2 keys)
+  template_attack.py      profiled (template) attack + comparison vs. CPA
+  plot_results.py         the plots the report needs
+  run_all.py              driver: runs CPA + sweep (+ template, optionally) for one key, saves everything
+  test_pipeline.py        self-test using simulated traces — run this first
 
 Shortcut: the TAs share the already converted folders of all 32 keys (4 GB, link on Canvas).
 If you download those, skip steps 1 and 2 and point check_data.py and your scripts to them.
@@ -21,6 +32,8 @@ Steps
   3. python check_data.py dpav2_npy/13198a2e03707344a4093822299f31d0
      prints "AES check on 50 traces: OK" and saves mean_trace.png
   4. python aes_tools.py     self-test (FIPS-197 vector and key-schedule inversion)
+
+# TODO: Add new steps
 
 Data format per key folder
   traces.npy  int16 (20000, 3253)   raw oscilloscope words, one row per encryption
