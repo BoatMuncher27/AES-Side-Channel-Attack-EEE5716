@@ -57,7 +57,7 @@ if __name__ == "__main__":
     ap.add_argument("target_key_hex")
     ap.add_argument("--repeats", type=int, default=10)
     ap.add_argument("--seed", type=int, default=0)
-    ap.add_argument("--model", choices=["hw", "hd"], default="hd", help="leakage model used for the CPA side of the comparison")
+    ap.add_argument("--model", choices=["hw", "hd"], default="hd", help="leakage model used for the CPA side of the comparison") # All attacks should use hd
     ap.add_argument("--out", default=None)
     
     #
