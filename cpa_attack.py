@@ -15,10 +15,9 @@ import time
 import numpy as np
 
 from aes_tools import master_from_round10
-from leakage import leakage_hypotheses
+from leakage import leakage_hypotheses, shiftrows_src
 from utils import load_key_folder, true_round10_key
 
-# TODO: Fix this module, as it can't find the full key match yet
 
 def pearson_corr_matrix(H, T):
     """Pearson correlation between every row of H and every column of T.
@@ -35,7 +34,7 @@ def pearson_corr_matrix(H, T):
     H = H.astype(np.float64)
     T = T.astype(np.float64)
 
-    sumH = H.sum(axis=1)                       # (n_hyp,)
+    sumH = H.sum(axis=1)                      # (n_hyp,)
     sumH2 = (H * H).sum(axis=1)                # (n_hyp,)
     sumT = T.sum(axis=0)                       # (n_samples,)
     sumT2 = (T * T).sum(axis=0)                # (n_samples,)
@@ -49,15 +48,20 @@ def pearson_corr_matrix(H, T):
     return numer / denom
 
 
-def attack_byte(traces, ct_byte, model="hd"):
+def attack_byte(traces, ct_byte, model="hd", ct_partner_byte=None):
     """CPA on a single key byte position.
+
+    ct_partner_byte: required for model='hd' -- must be ct[:, shiftrows_src(m)]
+    where m is the key-byte position ct_byte came from (ct[:, m]). See
+    leakage.py's module docstring for why this is a different column than
+    ct_byte itself for every row except row 0.
 
     Returns:
         best_guess   : int, argmax key byte 0..255
         peak_corr    : (256,) max |correlation| over all sample points, per guess
         corr_matrix  : (256, n_samples) full correlation matrix (for plotting)
     """
-    H = leakage_hypotheses(ct_byte, model=model)
+    H = leakage_hypotheses(ct_byte, model=model, ct_partner_byte=ct_partner_byte)
     corr = pearson_corr_matrix(H, traces)
     peak_corr = np.max(np.abs(corr), axis=1)
     best_guess = int(np.argmax(peak_corr))
@@ -70,7 +74,8 @@ def attack_full_key(traces, ct, model="hd", verbose=True):
     peak_corrs = np.zeros((16, 256), dtype=np.float64)
     corr_matrices = [None] * 16
     for i in range(16):
-        best, peaks, corr = attack_byte(traces, ct[:, i], model=model)
+        partner = ct[:, shiftrows_src(i)] if model == "hd" else None
+        best, peaks, corr = attack_byte(traces, ct[:, i], model=model, ct_partner_byte=partner)
         recovered[i] = best
         peak_corrs[i] = peaks
         corr_matrices[i] = corr
@@ -87,22 +92,20 @@ def run(folder, model="hd", n_traces=None, out_dir=None, verbose=True):
     traces, pt, ct, key_hex = load_key_folder(folder, n_traces=n_traces)
     n = traces.shape[0]
     traces = np.asarray(traces, dtype=np.float32)
-    
     if verbose:
         print(f"Attacking {folder} with {n} traces, model={model}")
-        
     t0 = time.time()
     recovered, peak_corrs, corr_matrices = attack_full_key(traces, ct, model=model, verbose=verbose)
     dt = time.time() - t0
 
     true_k10 = true_round10_key(key_hex)
-    byte_correct = (recovered == true_k10)
+    byte_correct = recovered == true_k10
     n_correct = int(byte_correct.sum())
 
     recovered_master = master_from_round10(bytes(recovered)).hex()
 
     if verbose:
-        print()
+        print
         print(f"True key:              {key_hex}")
         print(f"Recovered round10 key: {recovered.tobytes().hex()}")
         print(f"True round10 key:      {bytes(true_k10).hex()}")

@@ -10,6 +10,7 @@ Usage:
 """
 import argparse
 import os
+import csv as csvmod
 
 import numpy as np
 
@@ -21,7 +22,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("folder", help="key folder to attack")
     ap.add_argument("--tag", required=True, help="short name used in output filenames")
-    ap.add_argument("--model", choices=["hw", "hd"], default="hd")
+    ap.add_argument("--model", choices=["hw", "hd"], default="hd") # hw does not work
     ap.add_argument("--out-dir", default="results")
     ap.add_argument("--n-list", type=int, nargs="+", default=[50, 100, 200, 500, 1000, 2000, 5000, 10000])
     ap.add_argument("--repeats", type=int, default=10)
@@ -46,7 +47,6 @@ if __name__ == "__main__":
     print("\n=== success rate / guessing entropy vs N ===")
     rows = evaluate.evaluate(args.folder, args.n_list, repeats=args.repeats, model=args.model)
     csv_path = os.path.join(out_dir, "eval.csv")
-    import csv as csvmod
     with open(csv_path, "w", newline="") as f:
         w = csvmod.DictWriter(f, fieldnames=["N", "byte_success_rate", "guessing_entropy", "full_key_success_rate"])
         w.writeheader()

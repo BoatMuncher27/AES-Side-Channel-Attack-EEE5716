@@ -27,6 +27,7 @@ import os
 import numpy as np
 
 from cpa_attack import attack_byte
+from leakage import shiftrows_src
 from utils import load_key_folder, true_round10_key
 
 
@@ -56,7 +57,8 @@ def evaluate(folder, n_list, repeats=10, model="hd", seed=0, verbose=True):
             traces = np.asarray(traces_full[idx], dtype=np.float32)
             ct = ct_full[idx]
             for i in range(16):
-                _, peaks, _ = attack_byte(traces, ct[:, i], model=model)
+                partner = ct[:, shiftrows_src(i)] if model == "hd" else None
+                _, peaks, _ = attack_byte(traces, ct[:, i], model=model, ct_partner_byte=partner)
                 rank, succ = guessing_entropy_and_success(peaks, true_k10[i])
                 ranks_all[rep, i] = rank
                 success_all[rep, i] = succ
@@ -74,22 +76,19 @@ def evaluate(folder, n_list, repeats=10, model="hd", seed=0, verbose=True):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("folder")
-    ap.add_argument("--n-list", type=int, nargs="+",
-                     default=[50, 100, 200, 500, 1000, 2000, 5000, 10000])
+    ap.add_argument("--n-list", type=int, nargs="+", default=[50, 100, 200, 500, 1000, 2000, 5000, 10000])
     ap.add_argument("--repeats", type=int, default=10)
     ap.add_argument("--model", choices=["hw", "hd"], default="hd")
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", default=None, help="CSV output path")
     args = ap.parse_args()
 
-    rows = evaluate(args.folder, args.n_list, repeats=args.repeats,
-                     model=args.model, seed=args.seed)
+    rows = evaluate(args.folder, args.n_list, repeats=args.repeats, model=args.model, seed=args.seed)
 
     if args.out:
         os.makedirs(os.path.dirname(args.out) or ".", exist_ok=True)
         with open(args.out, "w", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=["N", "byte_success_rate",
-                                               "guessing_entropy", "full_key_success_rate"])
+            w = csv.DictWriter(f, fieldnames=["N", "byte_success_rate", "guessing_entropy", "full_key_success_rate"])
             w.writeheader()
             w.writerows(rows)
         print(f"wrote {args.out}")
