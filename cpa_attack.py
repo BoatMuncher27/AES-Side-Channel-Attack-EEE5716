@@ -45,6 +45,7 @@ def pearson_corr_matrix(H, T):
     denomH = n * sumH2 - sumH ** 2             # (n_hyp,)
     denomT = n * sumT2 - sumT ** 2             # (n_samples,)
     denom = np.sqrt(np.maximum(denomH[:, None] * denomT[None, :], 1e-12))
+    
     return numer / denom
 
 
@@ -65,6 +66,7 @@ def attack_byte(traces, ct_byte, model="hd", ct_partner_byte=None):
     corr = pearson_corr_matrix(H, traces)
     peak_corr = np.max(np.abs(corr), axis=1)
     best_guess = int(np.argmax(peak_corr))
+    
     return best_guess, peak_corr, corr
 
 
@@ -141,4 +143,5 @@ if __name__ == "__main__":
     ap.add_argument("--n-traces", type=int, default=None, help="use only the first N traces")
     ap.add_argument("--out", default=None, help="directory to save results into")
     args = ap.parse_args()
+    
     run(args.folder, model=args.model, n_traces=args.n_traces, out_dir=args.out)

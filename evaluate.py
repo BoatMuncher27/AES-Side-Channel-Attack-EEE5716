@@ -49,27 +49,36 @@ def evaluate(folder, n_list, repeats=10, model="hd", seed=0, verbose=True):
         if N > n_available:
             print(f"skipping N={N}: only {n_available} traces available")
             continue
+        
         ranks_all = np.zeros((repeats, 16), dtype=int)
         success_all = np.zeros((repeats, 16), dtype=int)
+        
         for rep in range(repeats):
             idx = rng.choice(n_available, size=N, replace=False)
             idx.sort()  # sorted indices are much faster for memmap fancy-indexing
             traces = np.asarray(traces_full[idx], dtype=np.float32)
             ct = ct_full[idx]
+            
             for i in range(16):
                 partner = ct[:, shiftrows_src(i)] if model == "hd" else None
                 _, peaks, _ = attack_byte(traces, ct[:, i], model=model, ct_partner_byte=partner)
                 rank, succ = guessing_entropy_and_success(peaks, true_k10[i])
                 ranks_all[rep, i] = rank
                 success_all[rep, i] = succ
+                
         mean_ge = ranks_all.mean()
         mean_sr = success_all.mean()
         full_key_sr = np.mean(np.all(success_all == 1, axis=1))
         if verbose:
             print(f"N={N:6d}  byte success rate={mean_sr:.3f}  "
                   f"guessing entropy={mean_ge:6.2f}  full-key success={full_key_sr:.3f}")
-        rows.append({"N": N, "byte_success_rate": mean_sr,
-                     "guessing_entropy": mean_ge, "full_key_success_rate": full_key_sr})
+        rows.append({
+            "N": N, 
+            "byte_success_rate": mean_sr, 
+            "guessing_entropy": mean_ge, 
+            "full_key_success_rate": full_key_sr
+        })
+    
     return rows
 
 
